@@ -8,7 +8,7 @@ Inspired by [judge](https://github.com/ianthehenry/judge).
 
 1. Include dredd in your project.
 
-`io.github.escherize/dredd {:git/sha "FIXME"}`
+`io.github.escherize/dredd {:git/sha "8979b4cc84503da7ac97a3ca5f16df8bab292762"}`
 
 2. Start `judge`ing.
 
