@@ -1,6 +1,6 @@
-# dredd/dredd
+# Dredd
 
-Self-modifying test tool. 
+The self-modifying test tool. 
 
 Inspired by [judge](https://github.com/ianthehenry/judge).
 
