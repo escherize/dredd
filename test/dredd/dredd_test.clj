@@ -1,47 +1,72 @@
 (ns dredd.dredd-test
   (:require
-   [clojure.java.io :as io]
    [clojure.test :refer [deftest is]]
    [dredd.dredd :as dredd]))
 
-(deftest judge-output-test
-  (let [pass (dredd/judge one (vec (range 3)) [0 1 2])]
-    (is (= [:judge/passed [0 1 2]] pass)))
+(deftest basic-judge-one-argument-test
+  (is (= [:judge/filled 3] (dredd/judge (+ 1 2)))
+      "filled when no name and no expected"))
 
-  (let [fail (dredd/judge two (vec (range 3)) [])]
-    (is (= [:judge/failed [0 1 2]] fail)))
+(deftest basic-judge-two-argument-test
+  (is (= [:judge/filled 3] (dredd/judge one (+ 1 2)))
+      "filled when name and no expected"))
 
-  (let [fill (dredd/judge three (vec (range 3)))]
-    (is (= [:judge/filled [0 1 2]] fill))))
+(deftest basic-judge-three-argument-test
+  (is (= [:judge/passed 3] (dredd/judge one (+ 1 2) 3))
+      "passed with name expected and actual")
+  (is (= [:judge/failed 3] (dredd/judge one (+ 1 2) 4))
+      "failed with name expected and actual"))
 
-(def test-fill-content
-  "(ns dredd.dredd-test-fill
-  (:require [dredd.dredd :as dredd]))
+(defn some-weird-fxn [x]
+  (nth (cycle [1 2 3 4 5]) (Math/sqrt (* x x x 3))))
 
-(def x 1)
+;; 1 arg (wrong)
+#_{:clj-kondo/ignore [:unresolved-symbol]}
+(dredd/judge (+ 1 1))
 
-(dredd/judge passing-test (+ 1 1) 2)
-(dredd/judge failing-test (+ 1 1) 0)
-(dredd/judge filling-test (+ 1 1))
-")
+;; 2 args (wrong)
+;; (dredd/judge two-plus-2-is-4 (+ 2 2))
 
-(def test-fill-output
-  "(ns dredd.dredd-test-fill
-  (:require [dredd.dredd :as dredd]))
+;; 3 args (right)
+;; (dredd/judge three-args-right (* 10 10) 100)
 
-(def x 1)
+;; (defn some-weird-fxn [x]
+;;   (nth (cycle [1 2 3 4 5]) (Math/sqrt (* x x x 3))))
 
-(dredd/judge passing-test (+ 1 1) 2)
-(dredd/judge failing-test (+ 1 1) 2)
-(dredd/judge filling-test (+ 1 1) 2)
-")
+;; 3 args (wrong)
+;; (dredd/judge three-args-wrong
+;;              (mapv some-weird-fxn (range 10))
+;;              "nope")
 
-(deftest fix-ns!-fill-test
-  (spit "test/dredd/dredd_test_fill.clj" test-fill-content)
-  (require '[dredd.dredd-test-fill :as dtf])
-  (is (= {:judge/passed '[passing-test]
-          :judge/failed '[failing-test]
-          :judge/filled '[filling-test]}
-         (dredd/fix-ns! 'dredd.dredd-test-fill {:mode :fix})))
-  (is (= test-fill-output (slurp "test/dredd/dredd_test_fill.clj")))
-  (io/delete-file "test/dredd/dredd_test_fill.clj"))
+(comment
+  (dredd/fix)
+
+  ;; 1 arg
+  ;; [expected]
+  ;; 
+  ;; This will always need fixing, and fixing it will fill in so we get to 3
+  ;; args.
+
+  ;; 2 args
+  ;; [name expected]
+
+  ;; 3 args
+  ;; [name actual expected]
+
+
+  ;; matrix is:
+  (vec (for [mode [:fix :ask]
+             args [:1-arg :2-args :3-args]
+             right? [:correct :incorrect]]
+         [mode args right?]))
+  [[:fix :1-arg :incorrect]
+   [:fix :2-args :incorrect]
+   [:fix :3-args :correct]
+   [:fix :3-args :incorrect]
+   [:ask :1-arg :incorrect]
+   [:ask :2-args :incorrect]
+   [:ask :3-args :correct]
+   [:ask :3-args :incorrect]]
+
+
+  )
