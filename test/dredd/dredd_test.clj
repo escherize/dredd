@@ -17,26 +17,18 @@
   (is (= [:judge/failed 3] (dredd/judge one (+ 1 2) 4))
       "failed with name expected and actual"))
 
-(defn some-weird-fxn [x]
-  (nth (cycle [1 2 3 4 5]) (Math/sqrt (* x x x 3))))
 
-;; 1 arg (wrong)
-#_{:clj-kondo/ignore [:unresolved-symbol]}
-(dredd/judge (+ 1 1))
+;; one arg
+(dredd/judge copper-mangosteen (* 10 10) 100)
+;;           ^ expression to check
 
-;; 2 args (wrong)
-;; (dredd/judge two-plus-2-is-4 (+ 2 2))
+;; two args
+(dredd/judge hard-math (* 234 593 -3) -416286)
+;;           ^ added name
 
-;; 3 args (right)
-;; (dredd/judge three-args-right (* 10 10) 100)
-
-;; (defn some-weird-fxn [x]
-;;   (nth (cycle [1 2 3 4 5]) (Math/sqrt (* x x x 3))))
-
-;; 3 args (wrong)
-;; (dredd/judge three-args-wrong
-;;              (mapv some-weird-fxn (range 10))
-;;              "nope")
+;; three args
+(dredd/judge two-plus-2 (+ 2 2) 4)
+;;         added expected value ^
 
 (comment
   (dredd/fix)
