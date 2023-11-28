@@ -2,47 +2,47 @@
 
 Automatic Test Updates (and Enforcement someday)
 
-_Inspired by [judge](https://github.com/ianthehenry/judge).__
+_Inspired by [judge](https://github.com/ianthehenry/judge)._
 
 ## Usage
 
 1. Include dredd in your project.
 
-`io.github.escherize/dredd {:git/sha "70d811bf9925a545421a26dde4a33755531c5fb4"}`
-
-2. As you work, put in some `j` forms.
-
-A `j` form takes an actual and (optionally) expected value.
+`io.github.escherize/dredd {:git/sha "eb72b86b4861276485acbcab3f1374ec11e01592"}`
 
 ``` clojure
 (require '[dredd.core :refer [j]])
 ```
 
-Just the actual value:
+2. As you work, put in some `j` forms.
+
+A `j` form takes one or two values:
+
+Just one value: it will always eval to `:fail`.
 ``` clojure
 (j (* 10 11))
 ;;=> :fail
 ```
 
-The wrong expected value:
+The wrong expected value will eval to `:fail`.
 ``` clojure
 (j (* 10 11) "wrong")
 ;;=> :fail
 ```
 
-The right expected value:
+The right expected value evals to `:true` (🎉).
 ```clojure
 (j (* 10 11) 110)
 ;;=> :pass
 ```
 
-## Automatic Rewrite API
+## Automatic-Rewrite API
 
 There are 3 public entrypoints: `check`, `fix` and `ask`.
 
-### fix
+### `fix`
 
-Calling fix on a namespace with the above judge forms will rewrite j forms to be correct if they are wrong or blank.
+Calling `fix` on a namespace with the above judge forms will rewrite j forms to be correct if they are wrong or blank.
 
 ``` clojure
 (ns my-ns (:require [dredd.dredd :refer [j]]))
@@ -58,12 +58,14 @@ Evaluating `(dredd/fix)` in this namespace will _rewrite your test to be:_
 (comment (dredd/fix))
 ```
 
-### ask
+### `ask`
 
-Ask is similar to fix, but will show a prompt where you get shown information
-about the change you're about to make (by entering y or just hitting enter).
+`ask` is similar to `fix`, but will show a prompt where you get shown
+information about the change you're about to make. Accept the change by entering
+y or just hitting enter, decline with n.
 
-Here's the output of me running ask from `dredd.dredd-test`, and sending enter to stdin twice:
+Here's the output of me running ask from `dredd.dredd-test`, and sending <kbd>y</kbd> + <kbd>Enter</kbd> to stdin twice:
+
 
 ``` text
 *==================================================
@@ -85,11 +87,11 @@ Dredd is fixing j_23 to be 100
 Dredd is fixing j_25 to be 6
 ```
 
- It's fixed!
+ And it's fixed.
 
-### check
+### `check`
 
-To see the result of judges in your namespace:
+To see the result of judges in your namespace without editing anything.
 
 ``` clojure
 
