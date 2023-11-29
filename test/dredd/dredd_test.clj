@@ -5,28 +5,30 @@
    [clojure.walk :as walk]
    [dredd.dredd :as dredd :refer [j]]))
 
-(clojure.test/use-fixtures
-  :each
-  (fn [f] (dredd/enable!) (f)))
+(deftest basic-judge-disabled-test
+  (dredd/disable!)
+  (is (= false @@#'dredd/*enabled?))
+  (is (= nil (j (+ 1 2))) "no output")
+  (is (= nil (j (+ 1 2) 3)) "no output")
+  (is (= nil (j (+ 1 2) 4)) "no output"))
 
-(deftest basic-judge-one-argument-test
-  (is (= :fail (dredd/j (+ 1 2)))
-      "fails when given only an expression"))
-
-(deftest basic-judge-two-argument-test
+(deftest basic-judge-enabled-test
+  (dredd/enable!)
+  (is (= true @@#'dredd/*enabled?))
+  (is (= :fail (j (+ 1 2)))
+      "fails when given only an expression")
   (is (= :pass (j (+ 1 2) 3))
-      "passed with name expected and actual")
+      "passed with expected and actual")
   (is (= :fail (j (+ 1 2) 4))
-      "failed with name expected and actual"))
+      "failed with expected and actual"))
 
-;; one arg
-(j (* 10 10) 
-   100)
-(j (* 2 3) 
-   6 "wrong")
+;; correct me
+(j (* 10 10) 100)
+(j (* 2 3) 6)
 (j (* 10 -4) -40)
 
 (comment
+  (dredd/enable!)
   (dredd/ask)
 
   )

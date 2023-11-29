@@ -6,65 +6,61 @@
 
 (def ^:dynamic *verbosity-level* 0)
 
-(defmacro judge
-  "Macro to define a judge-y statement. It is evaluatable, and rewritable via
-  [[fix-ns!]].
+(defn judge
+  "function-impl for creating a j form.
 
   This does a number of things. When evaluated it returns a tuple of
-  [judge/status correct-value], which is useful when calling it from the repl
-
-  The most surprising thing is that it is a marker used to rewrite the contents
-  when calling [[fix]] or [[ask]]."
-  ([actual] `(judge ~actual :judge/fixme))
+  [judge/status correct-value], which is useful when calling it from the repl "
+  ([actual] (judge actual :judge/fixme))
   ([actual expected]
-   (let [{:keys [line column]} (meta &form)]
-     `(do (def
-            ~(vary-meta (symbol (str "judge__" name)) assoc
-                        :private true
-                        :line line
-                        :column column
-                        :judge true)
-            (= ~expected ~actual))
-          ~(let [correct-val (eval actual)]
-             (cond
-               (= correct-val expected)  :pass
-               (= expected :judge/fixme) :fail
-               :else                     :fail))))))
+   (let [correct-val actual]
+     (cond
+       (= correct-val expected)  :pass
+       (= expected :judge/fixme) :fail
+       :else                     :fail))))
 
-(defonce ^:private *enabled? (atom false))
+(defonce ^:private *enabled?
+  ;; This does 2 things:
+  ;; - when `(not *enabled)`, j forms evaluate to nil like comments
+  ;; - [[ask]] and [[fix]] will not work unless enabled.
+  (atom false))
+
 (defn enable! [] (reset! *enabled? true))
 (defn disable! [] (reset! *enabled? false))
+(defn enabled? [] @*enabled?)
+(defn check-enabled!
+  []
+  (when-not @*enabled? (throw (ex-info "You must enable dredd first." {:enabled? false}))))
 
 (defmacro j [& args]
-  (when @*enabled? `(judge ~@args)))
+  `(when (enabled?) (~judge ~@args)))
 
-(defn- zipper-fix [filled-zipper correct-val name]
-  (println "Dredd is fixing" (c/red (pr-str name)) "to be" (c/green (pr-str correct-val)))
+(defn- zipper-fix [filled-zipper correct-val location-title]
+  (println "Dredd is fixing" (c/red (pr-str location-title)) "to be" (c/green (pr-str correct-val)))
   (-> filled-zipper
       z/down
       z/right
       z/right
       (z/replace correct-val)
-      (z/insert-newline-left)
-      (z/insert-space-left 3)
       z/up))
 
-(defn- run-failed-ask [name actual expected correct-val zipper noop-zipper arg-count [line col] ns-str]
+(defn- run-failed-ask [actual expected correct-val filled-zipper noop-zipper arg-count [line col] ns-str]
   (binding [*verbosity-level* 0]
-    (let [response (atom "__uninitialized")]
+    (let [response (atom "__uninitialized")
+          location-title (str ns-str ":" line (when (not= 1 col) (str ":" col)))]
       (println "\n*==================================================")
-      (println "*       Fixing judge at:" (str ns-str ":" line (when (not= 1 col) (str ":" col))))
+      (println "*       Fixing judge at:" location-title)
       (println "*       When evaluating:" (pr-str actual))
-      (println "*              Expected:" (if (= expected :dredd.dredd/fixme)
-                                            "No value was provided"
-                                            (c/red (pr-str expected))))
+      (println "*     Expected value is:" (c/red (if (= expected :dredd.dredd/fixme)
+                                                   "<No value was provided>"
+                                                   (pr-str expected))))
       (println "*      But it should be:" (c/green (pr-str correct-val)))
       (println "*                    ---------")
       (while (not (contains? #{"" "y" "n"} (str/lower-case (or @response "GOTO WHILE"))))
        (println "* Do you want me to fix it? [Y/n]")
        (reset! response (read-line)))
       (if (#{"" "y"} (str/lower-case @response))
-        (zipper-fix zipper correct-val name)
+        (zipper-fix filled-zipper correct-val location-title)
         noop-zipper))))
 
 (defn fill-zipper [zipper expected]
@@ -93,13 +89,12 @@
               arg-count (dec (count judge-form))
               [_judge actual maybe-expected] judge-form
               _ (when (< 2 arg-count) (throw (ex-info "judge can only accept 2 args for now." {})))
-              #_#_blank? (= 1 arg-count)
-              ;; TODO: get this from zipper.
+              blank? (= 1 arg-count)
               [line column] (z/position zipper')
               name (symbol (str "j_" line (when (not= 1 column) (str "_" column))))
               expected (if (= 2 arg-count) maybe-expected :dredd.dredd/fixme)
-              #_#_judge-form (if (not blank?) (list _judge actual expected) judge-form)
-              filled-zipper (fill-zipper zipper' expected)
+              filled-zipper (cond-> zipper' blank? (fill-zipper expected))
+              _ (def fz filled-zipper)
               correct-val (eval actual)
               passed? (= correct-val expected)
               zipper''' (case [mode passed?]
@@ -111,7 +106,7 @@
 
                           [:ask true] zipper' ;; noop
                           [:ask false] (run-failed-ask
-                                         name actual expected
+                                         actual expected
                                          correct-val filled-zipper
                                          zipper' arg-count
                                          [line column]
@@ -146,6 +141,7 @@
   `(do
      ;; TODO this is a hack:
      ;; deffed a harmless thing to be able to find the namespace
+     (check-enabled!)
      (def sledd# 1)
      (#'fix-ns! *ns* {:mode :check})))
 
@@ -155,6 +151,7 @@
   `(do
      ;; TODO this is a hack:
      ;; deffed a harmless thing to be able to find the namespace
+     (check-enabled!)
      (def sledd# 1)
      (#'fix-ns! *ns* {:mode :fix})))
 
@@ -164,5 +161,6 @@
   `(do
      ;; TODO this is a hack:
      ;; deffed a harmless thing to be able to find the namespace
+     (check-enabled!)
      (def sledd# 1)
      (#'fix-ns! *ns* {:mode :ask})))

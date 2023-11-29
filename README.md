@@ -42,19 +42,23 @@ There are 3 public entrypoints: `check`, `fix` and `ask`.
 
 ### `fix`
 
-Calling `fix` on a namespace with the above judge forms will rewrite j forms to be correct if they are wrong or blank.
+Calling `fix` on a namespace will rewrite all j forms to be correct.
 
 ``` clojure
 (ns my-ns (:require [dredd.dredd :refer [j]]))
-;; two args
+;; blank
 (j (* 234 593 -3))
+;; wrong
+(j (first "hi") \i)
 (comment (dredd/fix))
 ```
-Evaluating `(dredd/fix)` in this namespace will _rewrite your test to be:_
+Evaluating `(dredd/fix)` in this namespace will _rewrite it to be_:
 ``` clojure
 (ns my-ns (:require [dredd.dredd :refer [j]]))
-;; two args
+;; blank
 (j (* 234 593 -3) -416286)
+;; wrong
+(j (first "hi") \h)
 (comment (dredd/fix))
 ```
 
@@ -65,7 +69,6 @@ information about the change you're about to make. Accept the change by entering
 y or just hitting enter, decline with n.
 
 Here's the output of me running ask from `dredd.dredd-test`, and sending <kbd>y</kbd> + <kbd>Enter</kbd> to stdin twice:
-
 
 ``` text
 *==================================================
